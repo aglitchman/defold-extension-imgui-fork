@@ -380,7 +380,7 @@ static int imgui_DrawListAddRect(lua_State* L)
 // ----- FRAMES ---------------
 // ----------------------------
 
-static void imgui_NewFrame()
+void imgui_NewFrame()
 {
     if (g_imgui_NewFrame == false)
     {
