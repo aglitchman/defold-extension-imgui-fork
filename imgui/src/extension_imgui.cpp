@@ -4,6 +4,8 @@
 #include "imgui/imgui.h"
 #include "imgui/imconfig.h"
 
+#include "imgui/implot.h"
+
 // set in imconfig.h
 #if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
 #include <GL/gl3w.h>
@@ -2115,7 +2117,7 @@ static int imgui_Demo(lua_State* L)
     DM_LUA_STACK_CHECK(L, 0);
     imgui_NewFrame();
     bool show_demo_window = true;
-    ImGui::ShowDemoWindow(&show_demo_window);
+    ImPlot::ShowDemoWindow(&show_demo_window);
     return 0;
 }
 
@@ -3167,6 +3169,7 @@ static void imgui_Init(float width, float height)
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();
 
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2(width, height);
@@ -3190,6 +3193,7 @@ static void imgui_Shutdown()
     imgui_ClearGLError();
     ImGuiIO& io = ImGui::GetIO();
     io.Fonts->Clear();
+    ImPlot::DestroyContext();
     ImGui::DestroyContext();
 }
 
