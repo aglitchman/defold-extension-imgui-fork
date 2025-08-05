@@ -1,4 +1,13 @@
-# Dear ImGUI extension for Defold
+# ImGUI fork for Indiesoft internal use
+
+## Changes
+* Moved ImGUI headers to the `include` directory to support using the library from C++ native extensions.
+* Added [ImPlot](https://github.com/epezent/implot) library for plotting graphs (only for C++ native extensions now).
+* Added `imgui.curve`, `imgui.curve_value`, `imgui.curve_value_smooth` functions to draw and modify curves.
+
+# ORIGINAL README
+
+## Dear ImGUI extension for Defold
 This project adds support for [Dear ImGUI](https://github.com/ocornut/imgui) in Defold. Dear ImGUI is described as a "Bloat-free Graphical User interface for C++ with minimal dependencies". It is perfect for quickly creating a debug interface or for creation of in-game tools and settings.
 
 ![imgui1](https://user-images.githubusercontent.com/1300688/118636082-983cc000-b7d4-11eb-9a02-55785e4651ac.png)
