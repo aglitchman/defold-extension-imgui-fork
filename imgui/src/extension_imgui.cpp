@@ -5,6 +5,7 @@
 #include "imgui/imconfig.h"
 
 #include "imgui/implot.h"
+#include "imgui/imgui_curve.h"
 
 // set in imconfig.h
 #if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
@@ -3155,6 +3156,241 @@ static int imgui_SetIniFilename(lua_State* L)
 }
 
 // ----------------------------
+// ----- CURVE -----------------
+// ----------------------------
+
+/** Curve
+ * @name imgui.curve
+ * @string label
+ * @number width
+ * @number height
+ * @number maxpoints
+ * @table points - table of vmath.vector3 where x,y are used for curve points
+ * @number selection - optional selection index (1-based)
+ * @treturn boolean changed
+ * @treturn table points - modified points table
+ * @treturn number selection - current selection index
+ */
+static int imgui_Curve(lua_State* L)
+{
+    DM_LUA_STACK_CHECK(L, 3);
+    imgui_NewFrame();
+
+    const char* label = luaL_checkstring(L, 1);
+    float width = luaL_checknumber(L, 2);
+    float height = luaL_checknumber(L, 3);
+    int maxpoints = luaL_checkinteger(L, 4);
+
+    if (maxpoints <= 0 || maxpoints > 1000)
+    {
+        luaL_error(L, "maxpoints must be between 1 and 1000");
+        return 0;
+    }
+
+    // Check if points table is provided
+    if (!lua_istable(L, 5))
+    {
+        luaL_error(L, "points must be a table");
+        return 0;
+    }
+
+    // Optional selection parameter
+    int selection = -1;
+    if (lua_isnumber(L, 6))
+    {
+        selection = luaL_checkinteger(L, 6) - 1; // Convert from 1-based to 0-based
+    }
+
+    ImVec2 range_min = ImVec2(0, 0);
+    ImVec2 range_max = ImVec2(1, 1);
+
+    // Optional range parameters
+    if (lua_isuserdata(L, 7))
+    {
+        dmVMath::Vector3* v3 = dmScript::CheckVector3(L, 7);
+        if (v3)
+        {
+            range_min.x = v3->getX();
+            range_min.y = v3->getY();
+        }
+    }
+    if (lua_isuserdata(L, 8))
+    {
+        dmVMath::Vector3* v3 = dmScript::CheckVector3(L, 8);
+        if (v3)
+        {
+            range_max.x = v3->getX();
+            range_max.y = v3->getY();
+        }
+    }
+
+    // Allocate ImVec2 array for points
+    ImVec2* points = new ImVec2[maxpoints];
+
+    // Initialize with terminator
+    for (int i = 0; i < maxpoints; i++)
+    {
+        points[i].x = ImGui::CurveTerminator;
+        points[i].y = 0;
+    }
+
+    // Extract points from Lua table
+    int point_count = 0;
+    lua_pushnil(L);
+    while (lua_next(L, 5) != 0 && point_count < maxpoints)
+    {
+        if (lua_isuserdata(L, -1))
+        {
+            dmVMath::Vector3* v3 = dmScript::CheckVector3(L, -1);
+            if (v3) {
+                points[point_count].x = v3->getX();
+                points[point_count].y = v3->getY();
+                point_count++;
+            }
+        }
+        lua_pop(L, 1);
+    }
+
+    // Set terminator after valid points
+    if (point_count < maxpoints)
+    {
+        points[point_count].x = ImGui::CurveTerminator;
+    }
+
+    // Call ImGui::Curve
+    bool changed = ImGui::Curve(label, ImVec2(width, height), maxpoints, points, &selection, range_min, range_max);
+
+    // Return results
+    lua_pushboolean(L, changed);
+
+    // Return modified points table
+    if (changed)
+    {
+        lua_newtable(L);
+        int return_point_count = 0;
+        for (int i = 0; i < maxpoints && points[i].x != ImGui::CurveTerminator; i++) {
+            lua_pushinteger(L, i + 1);
+            dmScript::PushVector3(L, dmVMath::Vector3(points[i].x, points[i].y, 0));
+            lua_settable(L, -3);
+            return_point_count++;
+        }
+    }
+    else
+    {
+        lua_pushnil(L);
+    }
+
+    // Return current selection (1-based)
+    if (selection >= 0)
+    {
+        lua_pushinteger(L, selection + 1);
+    }
+    else
+    {
+        lua_pushnil(L);
+    }
+
+    delete[] points;
+    return 3;
+}
+
+/** CurveValue
+ * @name curve_value
+ * @number p - position (0-1)
+ * @table points - table of vmath.vector3 where x,y are used for curve points
+ * @treturn number value at position p
+ */
+static int imgui_CurveValue(lua_State* L)
+{
+    DM_LUA_STACK_CHECK(L, 1);
+
+    float p = luaL_checknumber(L, 1);
+
+    if (!lua_istable(L, 2)) {
+        luaL_error(L, "points must be a table");
+        return 0;
+    }
+
+    // Count and extract points
+    int maxpoints = lua_objlen(L, 2);
+    if (maxpoints <= 0) {
+        lua_pushnumber(L, 0);
+        return 1;
+    }
+
+    ImVec2* points = new ImVec2[maxpoints];
+
+    // Extract points from Lua table
+    int point_count = 0;
+    lua_pushnil(L);
+    while (lua_next(L, 2) != 0 && point_count < maxpoints) {
+        if (lua_isuserdata(L, -1)) {
+            dmVMath::Vector3* v3 = dmScript::CheckVector3(L, -1);
+            if (v3) {
+                points[point_count].x = v3->getX();
+                points[point_count].y = v3->getY();
+                point_count++;
+            }
+        }
+        lua_pop(L, 1);
+    }
+
+    float result = ImGui::CurveValue(p, point_count, points);
+    lua_pushnumber(L, result);
+
+    delete[] points;
+    return 1;
+}
+
+/** CurveValueSmooth
+ * @name curve_value_smooth
+ * @number p - position (0-1)
+ * @table points - table of vmath.vector3 where x,y are used for curve points
+ * @treturn number smoothed value at position p
+ */
+static int imgui_CurveValueSmooth(lua_State* L)
+{
+    DM_LUA_STACK_CHECK(L, 1);
+
+    float p = luaL_checknumber(L, 1);
+
+    if (!lua_istable(L, 2)) {
+        luaL_error(L, "points must be a table");
+        return 0;
+    }
+
+    // Count and extract points
+    int maxpoints = lua_objlen(L, 2);
+    if (maxpoints <= 0) {
+        lua_pushnumber(L, 0);
+        return 1;
+    }
+
+    ImVec2* points = new ImVec2[maxpoints];
+
+    // Extract points from Lua table
+    int point_count = 0;
+    lua_pushnil(L);
+    while (lua_next(L, 2) != 0 && point_count < maxpoints) {
+        if (lua_isuserdata(L, -1)) {
+            dmVMath::Vector3* v3 = dmScript::CheckVector3(L, -1);
+            if (v3) {
+                points[point_count].x = v3->getX();
+                points[point_count].y = v3->getY();
+                point_count++;
+            }
+        }
+        lua_pop(L, 1);
+    }
+
+    float result = ImGui::CurveValueSmooth(p, point_count, points);
+    lua_pushnumber(L, result);
+
+    delete[] points;
+    return 1;
+}
+
+// ----------------------------
 // ----- IMGUI INIT/SHUTDOWN --
 // ----------------------------
 
@@ -3396,6 +3632,12 @@ static const luaL_reg Module_methods[] =
     {"get_frame_height", imgui_GetFrameHeight},
 
     {"set_scroll_here_y", imgui_SetScrollHereY},
+
+    // imgui_curve.hpp
+    {"curve", imgui_Curve},
+    {"curve_value", imgui_CurveValue},
+    {"curve_value_smooth", imgui_CurveValueSmooth},
+
     {0, 0}
 };
 

@@ -35,4 +35,42 @@ return function(self)
 	imgui.plot_histogram( "Histogram", 0, 150, 40, values_hist )
 
 	imgui.separator()
+
+	-- Curve Editor Example
+	imgui.text_colored(" Curve Editor ", 0, 0, 1, 1 )
+	
+	-- Initialize curve data if not exists
+	if not self.curve_points then
+		self.curve_points = {
+			vmath.vector3(0.0, 0.0, 0.0),    -- Start point
+			vmath.vector3(0.3, 0.8, 0.0),    -- Peak
+			vmath.vector3(0.7, 0.2, 0.0),    -- Dip
+			vmath.vector3(1.0, 1.0, 0.0)     -- End point
+		}
+		self.curve_selection = nil
+	end
+
+	-- Curve editor widget
+	local changed, new_points, new_selection = imgui.curve(
+		"Curve", 
+		400, 150,           -- width, height
+		10,                 -- max points
+		self.curve_points, 
+		self.curve_selection
+	)
+
+	if changed then
+		print(changed, #new_points, new_selection)
+		self.curve_points = new_points
+		self.curve_selection = new_selection
+	end
+
+	-- Show curve values at different positions
+	imgui.text("Sample curve values:")
+	local positions = {0.0, 0.25, 0.5, 0.75, 1.0}
+	for _, pos in ipairs(positions) do
+		local value = imgui.curve_value(pos, self.curve_points)
+		local smooth_value = imgui.curve_value_smooth(pos, self.curve_points)
+		imgui.text(string.format("  t=%.2f: value=%.3f, smooth=%.3f", pos, value, smooth_value))
+	end
 end

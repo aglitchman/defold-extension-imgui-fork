@@ -991,3 +991,59 @@
     type: function
     desc: SetIniFilename 
 
+  - name: curve
+    type: function
+    desc: Interactive curve editor widget
+    parameters:
+    - name: label
+      type: string
+    - name: width
+      type: number
+    - name: height
+      type: number
+    - name: maxpoints
+      type: number
+    - name: points
+      type: table
+    - name: selection
+      type: number
+
+    returns:
+    - name: changed
+      type: boolean
+      desc: Whether the curve was modified
+    - name: points
+      type: table
+      desc: Updated points table
+    - name: selection
+      type: number
+      desc: Current selection index
+
+  - name: curve_value
+    type: function
+    desc: Get interpolated value from curve at position
+    parameters:
+    - name: p
+      type: number
+    - name: points
+      type: table
+
+    returns:
+    - name: value
+      type: number
+      desc: Interpolated value at position p
+
+  - name: curve_value_smooth
+    type: function
+    desc: Get smoothly interpolated value from curve at position
+    parameters:
+    - name: p
+      type: number
+    - name: points
+      type: table
+
+    returns:
+    - name: value
+      type: number
+      desc: Smoothly interpolated value at position p
+
