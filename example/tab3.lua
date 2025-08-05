@@ -42,12 +42,16 @@ return function(self)
 	-- Initialize curve data if not exists
 	if not self.curve_points then
 		self.curve_points = {
-			vmath.vector3(0.0, 0.0, 0.0),    -- Start point
-			vmath.vector3(0.3, 0.8, 0.0),    -- Peak
-			vmath.vector3(0.7, 0.2, 0.0),    -- Dip
-			vmath.vector3(1.0, 1.0, 0.0)     -- End point
+			-- new Keyframe(750f, .6f), new Keyframe(4000f, 1f), new Keyframe(7000f, .85f)
+			vmath.vector3(750.0, 0.7, 0.0),
+			vmath.vector3(4000.0, 1, 0.0),
+			vmath.vector3(7000.0, 0.85, 0.0)
 		}
 		self.curve_selection = nil
+		self.curve_range = {
+			min = vmath.vector3(750.0, 0.7, 0),
+			max = vmath.vector3(7000.0, 1.0, 0)
+		}
 	end
 
 	-- Curve editor widget
@@ -56,7 +60,9 @@ return function(self)
 		400, 150,           -- width, height
 		10,                 -- max points
 		self.curve_points, 
-		self.curve_selection
+		self.curve_selection,
+		self.curve_range.min,
+		self.curve_range.max
 	)
 
 	if changed then

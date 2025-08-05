@@ -446,8 +446,8 @@ float CurveValueSmooth(float p, int maxpoints, const ImVec2* points)
 {
     if (maxpoints < 2 || points == 0)
         return 0;
-    if (p < 0)
-        return points[0].y;
+    // if (p < 0)
+    //     return points[0].y;
 
     float* input = new float[maxpoints * 2];
     float output[4];
@@ -468,8 +468,8 @@ float CurveValue(float p, int maxpoints, const ImVec2* points)
 {
     if (maxpoints < 2 || points == 0)
         return 0;
-    if (p < 0)
-        return points[0].y;
+    // if (p < 0)
+    //     return points[0].y;
 
     int left = 0;
     while (left < maxpoints && points[left].x < p && points[left].x != -1)
