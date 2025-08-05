@@ -1007,6 +1007,12 @@
       type: table
     - name: selection
       type: number
+    - name: range_min
+      type: vector3
+      desc: (optional)
+    - name: range_max
+      type: vector3
+      desc: (optional)
 
     returns:
     - name: changed
