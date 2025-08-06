@@ -695,7 +695,7 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
     ImDrawList* drawList = window->DrawList;
 
     // bg grid
-    drawList->AddLine(ImVec2(bb.Min.x, bb.Min.y + ht / 2), ImVec2(bb.Max.x, bb.Min.y + ht / 2), gridColor1, 3);
+    drawList->AddLine(ImVec2(bb.Min.x, bb.Min.y + ht / 2), ImVec2(bb.Max.x, bb.Min.y + ht / 2), gridColor1); // , 3);
 
     drawList->AddLine(ImVec2(bb.Min.x, bb.Min.y + ht / 4), ImVec2(bb.Max.x, bb.Min.y + ht / 4), gridColor1);
 
@@ -784,7 +784,7 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
         ImVec2 pos = (g.IO.MousePos - bb.Min) / (bb.Max - bb.Min);
         pos.y = 1.0f - pos.y;
 
-        pos = ImLerp(rangeMin, rangeMax, pos);
+        pos = ImLerp(displayRangeMin, displayRangeMax, pos);
 
         snprintf(buf, sizeof(buf), "(%.2f,%.2f)", pos.x, pos.y);
         // str = buf;
