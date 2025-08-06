@@ -777,7 +777,7 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
 
     // draw the text at mouse position
     char buf[128];
-    const char* str = label;
+    // const char* str = label;
 
     if (hovered || draggingPoint)
     {
@@ -786,11 +786,11 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
 
         pos = ImLerp(rangeMin, rangeMax, pos);
 
-        snprintf(buf, sizeof(buf), "%s (%.2f,%.2f)", label, pos.x, pos.y);
-        str = buf;
-    }
+        snprintf(buf, sizeof(buf), "(%.2f,%.2f)", pos.x, pos.y);
+        // str = buf;
 
-    RenderTextClipped(ImVec2(bb.Min.x, bb.Min.y + style.FramePadding.y), bb.Max, str, NULL, NULL, ImVec2(0.5f, 0.5f));
+        RenderTextClipped(ImVec2(bb.Min.x, bb.Min.y + style.FramePadding.y), bb.Max, buf, NULL, NULL, ImVec2(0.5f, 0.5f));
+    }
 
     // curve selector
     static const char* items[] = {
