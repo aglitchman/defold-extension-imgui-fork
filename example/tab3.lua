@@ -66,7 +66,6 @@ return function(self)
 	)
 
 	if changed then
-		print(changed, #new_points, new_selection)
 		self.curve_points = new_points
 		self.curve_selection = new_selection
 	end

@@ -19,6 +19,13 @@
 
 #include <cmath>
 
+#ifdef DM_PLATFORM_WINDOWS
+extern "C" {
+    typedef struct GLFWwindow GLFWwindow;
+    void glfwSetClipboardString(GLFWwindow* window, const char* string);
+}
+#endif
+
 /*
     Example of use:
     ImVec2 foo[10];
@@ -806,6 +813,36 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
     // buttons; @todo: mirror, smooth, tessellate
     if (ImGui::BeginPopupContextItem(label))
     {
+        if (ImGui::Selectable("Copy to clipboard {x,y,x,y,...}"))
+        {
+            #ifdef DM_PLATFORM_WINDOWS
+            ImGuiTextBuffer clipboardText;
+            clipboardText.append("{ ");
+            for (int i = 0; i < pointCount; i++)
+            {
+                if (i > 0)
+                    clipboardText.append(", ");
+                clipboardText.appendf("%g, %g", points[i].x, points[i].y);
+            }
+            clipboardText.append(" }");
+            glfwSetClipboardString(NULL, clipboardText.c_str());
+            #endif
+        }
+        if (ImGui::Selectable("Copy to clipboard (Defold Lua)"))
+        {
+            #ifdef DM_PLATFORM_WINDOWS
+            ImGuiTextBuffer clipboardText;
+            clipboardText.append("{ ");
+            for (int i = 0; i < pointCount; i++)
+            {
+                if (i > 0)
+                    clipboardText.append(", ");
+                clipboardText.appendf("vmath.vector3(%g, %g, 0)", points[i].x, points[i].y);
+            }
+            clipboardText.append(" }");
+            glfwSetClipboardString(NULL, clipboardText.c_str());
+            #endif
+        }
         if (ImGui::Selectable("Reset"))
         {
             points[0] = rangeMin;
