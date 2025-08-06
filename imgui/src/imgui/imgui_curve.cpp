@@ -537,6 +537,13 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
     const float ht = bb.Max.y - bb.Min.y;
     const float wd = bb.Max.x - bb.Min.x;
 
+    // Add padding around the curve for easier editing of edge values
+    const float curvePadding = 0.1f; // 10% padding
+    const ImVec2 rangeSize = rangeMax - rangeMin;
+    const ImVec2 paddingAmount = rangeSize * curvePadding;
+    const ImVec2 displayRangeMin = rangeMin - paddingAmount;
+    const ImVec2 displayRangeMax = rangeMax + paddingAmount;
+
     int hoveredPoint = -1;
 
     const float pointRadiusInPixels = 8.0f;
@@ -547,7 +554,7 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
         ImVec2 hoverPos = (g.IO.MousePos - bb.Min) / (bb.Max - bb.Min);
         hoverPos.y = 1.0f - hoverPos.y;
 
-        ImVec2 pos = ImRemap(hoverPos, ImVec2(0, 0), ImVec2(1, 1), rangeMin, rangeMax);
+        ImVec2 pos = ImRemap(hoverPos, ImVec2(0, 0), ImVec2(1, 1), displayRangeMin, displayRangeMax);
 
         int left = 0;
         while (left < pointCount && points[left].x < pos.x)
@@ -556,8 +563,8 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
             left--;
 
         const ImVec2 hoverPosScreen = ImRemap(hoverPos, ImVec2(0, 0), ImVec2(1, 1), bb.Min, bb.Max);
-        const ImVec2 p1s = ImRemap(points[left], rangeMin, rangeMax, bb.Min, bb.Max);
-        const ImVec2 p2s = ImRemap(points[left + 1], rangeMin, rangeMax, bb.Min, bb.Max);
+        const ImVec2 p1s = ImRemap(points[left], displayRangeMin, displayRangeMax, bb.Min, bb.Max);
+        const ImVec2 p2s = ImRemap(points[left + 1], displayRangeMin, displayRangeMax, bb.Min, bb.Max);
 
         const float p1d = ImSqrt(ImLengthSqr(p1s - hoverPosScreen));
         const float p2d = ImSqrt(ImLengthSqr(p2s - hoverPosScreen));
@@ -604,7 +611,9 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
                 for (i = pointCount; i > left; --i)
                     points[i] = points[i - 1];
 
-                points[left + 1] = pos;
+                // Clamp position to original data range, not display range
+                ImVec2 clampedPos = ImClamp(pos, rangeMin, rangeMax);
+                points[left + 1] = clampedPos;
 
                 if (pointCount < maxpoints)
                     points[pointCount].x = CurveTerminator;
@@ -644,12 +653,13 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
 
         // constrain Y to min/max
         pos.y = 1.0f - pos.y;
-        pos = ImRemap(pos, ImVec2(0, 0), ImVec2(1, 1), rangeMin, rangeMax);
+        pos = ImRemap(pos, ImVec2(0, 0), ImVec2(1, 1), displayRangeMin, displayRangeMax);
 
         // constrain X to the min left/ max right
         const float pointXRangeMin = (currentSelection > 0) ? points[currentSelection - 1].x : rangeMin.x;
         const float pointXRangeMax = (currentSelection + 1 < pointCount) ? points[currentSelection + 1].x : rangeMax.x;
 
+        // Clamp to original data range, not display range
         pos = ImClamp(pos, ImVec2(pointXRangeMin, rangeMin.y), ImVec2(pointXRangeMax, rangeMax.y));
 
         points[currentSelection] = pos;
@@ -684,31 +694,36 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
 
     drawList->AddLine(ImVec2(bb.Min.x, bb.Min.y + ht / 4 * 3), ImVec2(bb.Max.x, bb.Min.y + ht / 4 * 3), gridColor1);
 
-    for (i = 0; i < 9; i++)
+    for (i = 0; i < 11; i++)
     {
-        drawList->AddLine(ImVec2(bb.Min.x + (wd / 10) * (i + 1), bb.Min.y), ImVec2(bb.Min.x + (wd / 10) * (i + 1), bb.Max.y), gridColor2);
+        drawList->AddLine(ImVec2(bb.Min.x + (wd / 12) * (i + 1), bb.Min.y), ImVec2(bb.Min.x + (wd / 12) * (i + 1), bb.Max.y), gridColor2);
     }
 
     drawList->PushClipRect(bb.Min, bb.Max);
 
-    // smooth curve
+    // smooth curve - only draw between first and last points
     enum
     {
         smoothness = 256
     }; // the higher the smoother
+    
+    // Get the actual range of existing points
+    const float firstPointX = points[0].x;
+    const float lastPointX = points[pointCount - 1].x;
+    
     for (i = 0; i <= (smoothness - 1); ++i)
     {
         float px = (i + 0) / float(smoothness);
         float qx = (i + 1) / float(smoothness);
 
-        px = ImRemap(px, 0, 1, rangeMin.x, rangeMax.x);
-        qx = ImRemap(qx, 0, 1, rangeMin.x, rangeMax.x);
+        px = ImRemap(px, 0, 1, firstPointX, lastPointX);
+        qx = ImRemap(qx, 0, 1, firstPointX, lastPointX);
 
         const float py = CurveValueSmooth(px, maxpoints, points);
         const float qy = CurveValueSmooth(qx, maxpoints, points);
 
-        ImVec2 p = ImRemap(ImVec2(px, py), rangeMin, rangeMax, ImVec2(0,0), ImVec2(1,1));
-        ImVec2 q = ImRemap(ImVec2(qx, qy), rangeMin, rangeMax, ImVec2(0,0), ImVec2(1,1));
+        ImVec2 p = ImRemap(ImVec2(px, py), displayRangeMin, displayRangeMax, ImVec2(0,0), ImVec2(1,1));
+        ImVec2 q = ImRemap(ImVec2(qx, qy), displayRangeMin, displayRangeMax, ImVec2(0,0), ImVec2(1,1));
         p.y = 1.0f - p.y;
         q.y = 1.0f - q.y;
 
@@ -721,8 +736,8 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
     // lines
     for (i = 1; i < pointCount; i++)
     {
-        ImVec2 a = ImRemap(points[i - 1], rangeMin, rangeMax, ImVec2(0, 0), ImVec2(1, 1));
-        ImVec2 b = ImRemap(points[i], rangeMin, rangeMax, ImVec2(0, 0), ImVec2(1, 1));
+        ImVec2 a = ImRemap(points[i - 1], displayRangeMin, displayRangeMax, ImVec2(0, 0), ImVec2(1, 1));
+        ImVec2 b = ImRemap(points[i], displayRangeMin, displayRangeMax, ImVec2(0, 0), ImVec2(1, 1));
 
         a.y = 1.0f - a.y;
         b.y = 1.0f - b.y;
@@ -738,7 +753,7 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
         // control points
         for (i = 0; i < pointCount; i++)
         {
-            ImVec2 p = ImRemap(points[i], rangeMin, rangeMax, ImVec2(0, 0), ImVec2(1, 1));
+            ImVec2 p = ImRemap(points[i], displayRangeMin, displayRangeMax, ImVec2(0, 0), ImVec2(1, 1));
             p.y = 1.0f - p.y;
             p = ImRemap(p, ImVec2(0, 0), ImVec2(1, 1), bb.Min, bb.Max);
 

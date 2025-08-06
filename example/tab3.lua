@@ -73,7 +73,7 @@ return function(self)
 
 	-- Show curve values at different positions
 	imgui.text("Sample curve values:")
-	local positions = {0.0, 0.25, 0.5, 0.75, 1.0}
+	local positions = {750, 4000, 7000}
 	for _, pos in ipairs(positions) do
 		local value = imgui.curve_value(pos, self.curve_points)
 		local smooth_value = imgui.curve_value_smooth(pos, self.curve_points)
