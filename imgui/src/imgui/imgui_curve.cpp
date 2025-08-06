@@ -695,15 +695,16 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
     ImDrawList* drawList = window->DrawList;
 
     // bg grid
-    drawList->AddLine(ImVec2(bb.Min.x, bb.Min.y + ht / 2), ImVec2(bb.Max.x, bb.Min.y + ht / 2), gridColor1); // , 3);
-
-    drawList->AddLine(ImVec2(bb.Min.x, bb.Min.y + ht / 4), ImVec2(bb.Max.x, bb.Min.y + ht / 4), gridColor1);
-
-    drawList->AddLine(ImVec2(bb.Min.x, bb.Min.y + ht / 4 * 3), ImVec2(bb.Max.x, bb.Min.y + ht / 4 * 3), gridColor1);
-
-    for (i = 0; i < 11; i++)
+    for (int j = 1; j < 12; j++)
     {
-        drawList->AddLine(ImVec2(bb.Min.x + (wd / 12) * (i + 1), bb.Min.y), ImVec2(bb.Min.x + (wd / 12) * (i + 1), bb.Max.y), gridColor2);
+        float y = bb.Min.y + (ht / 12) * j;
+        drawList->AddLine(ImVec2(bb.Min.x, y), ImVec2(bb.Max.x, y), gridColor1);
+    }
+
+    for (i = 1; i < 12; i++)
+    {
+        float x = bb.Min.x + (wd / 12) * i;
+        drawList->AddLine(ImVec2(x, bb.Min.y), ImVec2(x, bb.Max.y), gridColor2);
     }
 
     drawList->PushClipRect(bb.Min, bb.Max);
