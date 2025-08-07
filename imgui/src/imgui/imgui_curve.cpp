@@ -504,6 +504,7 @@ static inline ImVec2 ImRemap(const ImVec2& v, const ImVec2& a, const ImVec2& b, 
 
 int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* points, int* selection, const ImVec2& rangeMin, const ImVec2& rangeMax)
 {
+    char text_buf[256];
     int modified = 0;
     int i;
     if (maxpoints < 2 || points == nullptr)
@@ -738,7 +739,7 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
         p = ImRemap(p, ImVec2(0,0), ImVec2(1,1), bb.Min, bb.Max);
         q = ImRemap(q, ImVec2(0,0), ImVec2(1,1), bb.Min, bb.Max);
 
-        drawList->AddLine(p, q, GetColorU32(ImGuiCol_PlotHistogram));
+        drawList->AddLine(p, q, GetColorU32(ImGuiCol_PlotHistogram), 3.0f);
     }
 
     // lines
@@ -768,18 +769,28 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
             ImVec2 a = p - ImVec2(6, 6);
             ImVec2 b = p + ImVec2(6, 6);
             if(hoveredPoint == i)
-                drawList->AddRect(a, b, GetColorU32(ImGuiCol_PlotLinesHovered));
+                drawList->AddRect(a, b, GetColorU32(ImGuiCol_PlotLinesHovered), 0, 0, 3.0f);
             else
-                drawList->AddCircle(p, pointRadiusInPixels, GetColorU32(ImGuiCol_PlotLinesHovered));
+                drawList->AddCircle(p, pointRadiusInPixels, GetColorU32(ImGuiCol_PlotLinesHovered), 0, 3.0f);
         }
+    }
+
+    // draw point values "(x,y)" for actual control points
+    for (i = 0; i < pointCount; i++)
+    {
+        ImVec2 p = ImRemap(points[i], displayRangeMin, displayRangeMax, ImVec2(0, 0), ImVec2(1, 1));
+        p.y = 1.0f - p.y;
+        p = ImRemap(p, ImVec2(0, 0), ImVec2(1, 1), bb.Min, bb.Max);
+
+        snprintf(text_buf, sizeof(text_buf), "(%.2f,%.2f)", points[i].x, points[i].y);
+        ImVec2 text_size = CalcTextSize(text_buf);
+        ImVec2 text_pos = ImVec2(p.x - text_size.x * 0.5f, p.y + 6.0f);
+        drawList->AddText(text_pos, GetColorU32(ImGuiCol_Text, 0.75f), text_buf);
     }
 
     drawList->PopClipRect();
 
     // draw the text at mouse position
-    char buf[128];
-    // const char* str = label;
-
     if (hovered || draggingPoint)
     {
         ImVec2 pos = (g.IO.MousePos - bb.Min) / (bb.Max - bb.Min);
@@ -787,10 +798,9 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
 
         pos = ImLerp(displayRangeMin, displayRangeMax, pos);
 
-        snprintf(buf, sizeof(buf), "(%.2f,%.2f)", pos.x, pos.y);
-        // str = buf;
+        snprintf(text_buf, sizeof(text_buf), "(%.2f,%.2f)", pos.x, pos.y);
 
-        RenderTextClipped(ImVec2(bb.Min.x, bb.Min.y + style.FramePadding.y), bb.Max, buf, NULL, NULL, ImVec2(0.5f, 0.5f));
+        RenderTextClipped(ImVec2(bb.Min.x, bb.Min.y + style.FramePadding.y), bb.Max, text_buf, NULL, NULL, ImVec2(0.5f, 0.5f));
     }
 
     // curve selector
