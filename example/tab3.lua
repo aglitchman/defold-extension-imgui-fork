@@ -57,7 +57,7 @@ return function(self)
 	-- Curve editor widget
 	local changed, new_points, new_selection = imgui.curve(
 		"Curve", 
-		400, 150,           -- width, height
+		900, 300,           -- width, height
 		10,                 -- max points
 		self.curve_points, 
 		self.curve_selection,

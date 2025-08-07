@@ -131,6 +131,10 @@ function update(self, dt)
 		close_window(self)
 	end
 
+	if not self.window_size_set then
+		imgui.set_next_window_size(1000, 0, 0)
+		self.window_size_set = true
+	end
 	imgui.begin_window("Hello, world!", nil, imgui.WINDOWFLAGS_MENUBAR)
 	menu_bar(self)
 	imgui.begin_tab_bar("tabs")
