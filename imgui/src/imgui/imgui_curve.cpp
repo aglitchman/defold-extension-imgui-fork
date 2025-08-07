@@ -695,17 +695,82 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
 
     ImDrawList* drawList = window->DrawList;
 
-    // bg grid
+    // Compute plot rectangle that corresponds to the actual data range (exclude padding)
+    ImVec2 rangeMinNorm = ImRemap(rangeMin, displayRangeMin, displayRangeMax, ImVec2(0, 0), ImVec2(1, 1));
+    ImVec2 rangeMaxNorm = ImRemap(rangeMax, displayRangeMin, displayRangeMax, ImVec2(0, 0), ImVec2(1, 1));
+    rangeMinNorm.y = 1.0f - rangeMinNorm.y;
+    rangeMaxNorm.y = 1.0f - rangeMaxNorm.y;
+
+    ImVec2 rangeMinScreen = ImRemap(rangeMinNorm, ImVec2(0, 0), ImVec2(1, 1), bb.Min, bb.Max);
+    ImVec2 rangeMaxScreen = ImRemap(rangeMaxNorm, ImVec2(0, 0), ImVec2(1, 1), bb.Min, bb.Max);
+
+    ImRect plotRect(
+        ImVec2(ImMin(rangeMinScreen.x, rangeMaxScreen.x), ImMin(rangeMinScreen.y, rangeMaxScreen.y)),
+        ImVec2(ImMax(rangeMinScreen.x, rangeMaxScreen.x), ImMax(rangeMinScreen.y, rangeMaxScreen.y))
+    );
+
+    const float plotWidth = plotRect.GetWidth();
+    const float plotHeight = plotRect.GetHeight();
+
+    // bg grid (clipped to plotRect, i.e. do not draw grid into the padded margins)
+    // Expand a little to ensure first/last grid lines are fully visible (avoid AA clipping)
+    const float gridClipExpand = 1.0f;
+    ImVec2 gridClipMin = plotRect.Min - ImVec2(gridClipExpand, gridClipExpand);
+    ImVec2 gridClipMax = plotRect.Max + ImVec2(gridClipExpand, gridClipExpand);
+    drawList->PushClipRect(gridClipMin, gridClipMax, true);
     for (int j = 1; j < 12; j++)
     {
-        float y = bb.Min.y + (ht / 12) * j;
-        drawList->AddLine(ImVec2(bb.Min.x, y), ImVec2(bb.Max.x, y), gridColor1);
+        float y = plotRect.Min.y + (plotHeight / 12.0f) * j;
+        drawList->AddLine(ImVec2(plotRect.Min.x, y), ImVec2(plotRect.Max.x, y), gridColor1);
     }
 
-    for (i = 1; i < 12; i++)
+    for (int xi = 1; xi < 12; xi++)
     {
-        float x = bb.Min.x + (wd / 12) * i;
-        drawList->AddLine(ImVec2(x, bb.Min.y), ImVec2(x, bb.Max.y), gridColor2);
+        float x = plotRect.Min.x + (plotWidth / 12.0f) * xi;
+        drawList->AddLine(ImVec2(x, plotRect.Min.y), ImVec2(x, plotRect.Max.y), gridColor2);
+    }
+    drawList->PopClipRect();
+
+    // axes with ticks and numeric labels
+    const ImU32 axisColor = GetColorU32(ImGuiCol_Text, 0.9f);
+    const ImU32 tickTextColor = GetColorU32(ImGuiCol_TextDisabled, 0.85f);
+    const float tickLen = 4.0f;
+    const int divisions = 12;
+
+    // X axis (bottom of plotRect)
+    drawList->AddLine(ImVec2(plotRect.Min.x, plotRect.Max.y), ImVec2(plotRect.Max.x, plotRect.Max.y), axisColor);
+    for (int xi = 0; xi <= divisions; ++xi)
+    {
+        float t = (float)xi / (float)divisions;
+        float x = plotRect.Min.x + plotWidth * t;
+        drawList->AddLine(ImVec2(x, plotRect.Max.y), ImVec2(x, plotRect.Max.y + tickLen), axisColor);
+        if ((xi % 2) == 0)
+        {
+            float value = ImLerp(rangeMin.x, rangeMax.x, t);
+            char tick_buf[32];
+            ImFormatString(tick_buf, IM_ARRAYSIZE(tick_buf), "%.2f", value);
+            ImVec2 ts = CalcTextSize(tick_buf);
+            ImVec2 tp(x - ts.x * 0.5f, plotRect.Max.y + tickLen + 2.0f);
+            drawList->AddText(tp, tickTextColor, tick_buf);
+        }
+    }
+
+    // Y axis (left of plotRect)
+    drawList->AddLine(ImVec2(plotRect.Min.x, plotRect.Min.y), ImVec2(plotRect.Min.x, plotRect.Max.y), axisColor);
+    for (int yi = 0; yi <= divisions; ++yi)
+    {
+        float t = (float)yi / (float)divisions;
+        float y = plotRect.Max.y - plotHeight * t;
+        drawList->AddLine(ImVec2(plotRect.Min.x, y), ImVec2(plotRect.Min.x - tickLen, y), axisColor);
+        if ((yi % 2) == 0)
+        {
+            float value = ImLerp(rangeMin.y, rangeMax.y, t);
+            char tick_buf[32];
+            ImFormatString(tick_buf, IM_ARRAYSIZE(tick_buf), "%.2f", value);
+            ImVec2 ts = CalcTextSize(tick_buf);
+            ImVec2 tp(plotRect.Min.x - tickLen - 2.0f - ts.x, y - ts.y * 0.5f);
+            drawList->AddText(tp, tickTextColor, tick_buf);
+        }
     }
 
     drawList->PushClipRect(bb.Min, bb.Max);
@@ -776,17 +841,17 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
     }
 
     // draw point values "(x,y)" for actual control points
-    for (i = 0; i < pointCount; i++)
-    {
-        ImVec2 p = ImRemap(points[i], displayRangeMin, displayRangeMax, ImVec2(0, 0), ImVec2(1, 1));
-        p.y = 1.0f - p.y;
-        p = ImRemap(p, ImVec2(0, 0), ImVec2(1, 1), bb.Min, bb.Max);
+    // for (i = 0; i < pointCount; i++)
+    // {
+    //     ImVec2 p = ImRemap(points[i], displayRangeMin, displayRangeMax, ImVec2(0, 0), ImVec2(1, 1));
+    //     p.y = 1.0f - p.y;
+    //     p = ImRemap(p, ImVec2(0, 0), ImVec2(1, 1), bb.Min, bb.Max);
 
-        snprintf(text_buf, sizeof(text_buf), "(%.2f,%.2f)", points[i].x, points[i].y);
-        ImVec2 text_size = CalcTextSize(text_buf);
-        ImVec2 text_pos = ImVec2(p.x - text_size.x * 0.5f, p.y + 6.0f);
-        drawList->AddText(text_pos, GetColorU32(ImGuiCol_Text, 0.75f), text_buf);
-    }
+    //     snprintf(text_buf, sizeof(text_buf), "(%.2f,%.2f)", points[i].x, points[i].y);
+    //     ImVec2 text_size = CalcTextSize(text_buf);
+    //     ImVec2 text_pos = ImVec2(p.x - text_size.x * 0.5f, p.y + 6.0f);
+    //     drawList->AddText(text_pos, GetColorU32(ImGuiCol_Text, 0.75f), text_buf);
+    // }
 
     drawList->PopClipRect();
 
