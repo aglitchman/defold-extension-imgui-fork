@@ -20,6 +20,7 @@
 
 #include <dmsdk/sdk.h>
 #include <dmsdk/dlib/crypt.h>
+#include <float.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_STATIC
@@ -3167,6 +3168,9 @@ static int imgui_SetIniFilename(lua_State* L)
  * @number maxpoints
  * @table points - table of vmath.vector3 where x,y are used for curve points
  * @number selection - optional selection index (1-based)
+ * @vector3 range_min - optional min range (x,y used)
+ * @vector3 range_max - optional max range (x,y used)
+ * @number highlight_x - optional x coordinate to highlight on the curve
  * @treturn boolean changed
  * @treturn table points - modified points table
  * @treturn number selection - current selection index
@@ -3203,6 +3207,7 @@ static int imgui_Curve(lua_State* L)
 
     ImVec2 range_min = ImVec2(0, 0);
     ImVec2 range_max = ImVec2(1, 1);
+    float highlight_x = FLT_MAX; // optional
 
     // Optional range parameters
     if (lua_isuserdata(L, 7))
@@ -3222,6 +3227,12 @@ static int imgui_Curve(lua_State* L)
             range_max.x = v3->getX();
             range_max.y = v3->getY();
         }
+    }
+
+    // Optional highlight_x parameter (number)
+    if (lua_isnumber(L, 9))
+    {
+        highlight_x = (float)luaL_checknumber(L, 9);
     }
 
     // Allocate ImVec2 array for points
@@ -3257,8 +3268,8 @@ static int imgui_Curve(lua_State* L)
         points[point_count].x = ImGui::CurveTerminator;
     }
 
-    // Call ImGui::Curve
-    bool changed = ImGui::Curve(label, ImVec2(width, height), maxpoints, points, &selection, range_min, range_max);
+    // Call ImGui::Curve with optional highlight_x
+    bool changed = ImGui::Curve(label, ImVec2(width, height), maxpoints, points, &selection, range_min, range_max, highlight_x);
 
     // Return results
     lua_pushboolean(L, changed);

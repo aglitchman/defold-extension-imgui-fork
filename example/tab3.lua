@@ -52,6 +52,7 @@ return function(self)
 			min = vmath.vector3(750.0, 0.7, 0),
 			max = vmath.vector3(7000.0, 1.0, 0)
 		}
+		self.curve_highlight_x = 750.0
 	end
 
 	-- Curve editor widget
@@ -62,7 +63,8 @@ return function(self)
 		self.curve_points, 
 		self.curve_selection,
 		self.curve_range.min,
-		self.curve_range.max
+		self.curve_range.max,
+		self.curve_highlight_x * (self.curve_range.max.x - self.curve_range.min.x) + self.curve_range.min.x
 	)
 
 	if changed then
@@ -78,4 +80,6 @@ return function(self)
 		local smooth_value = imgui.curve_value_smooth(pos, self.curve_points)
 		imgui.text(string.format("  t=%.2f: value=%.3f, smooth=%.3f", pos, value, smooth_value))
 	end
+
+	self.curve_highlight_x = (self.curve_highlight_x + 0.001) % 1
 end

@@ -502,7 +502,7 @@ static inline ImVec2 ImRemap(const ImVec2& v, const ImVec2& a, const ImVec2& b, 
     return ImVec2(ImRemap(v.x, a.x, b.x, c.x, d.x), ImRemap(v.y, a.y, b.y, c.y, d.y));
 }
 
-int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* points, int* selection, const ImVec2& rangeMin, const ImVec2& rangeMax)
+int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* points, int* selection, const ImVec2& rangeMin, const ImVec2& rangeMax, float highlight_x)
 {
     char text_buf[256];
     int modified = 0;
@@ -546,7 +546,7 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
     const float wd = bb.Max.x - bb.Min.x;
 
     // Add padding around the curve for easier editing of edge values
-    const float curvePadding = 0.1f; // 10% padding
+    const float curvePadding = 0.15f; // 10% padding
     const ImVec2 rangeSize = rangeMax - rangeMin;
     const ImVec2 paddingAmount = rangeSize * curvePadding;
     const ImVec2 displayRangeMin = rangeMin - paddingAmount;
@@ -729,6 +729,38 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
         float x = plotRect.Min.x + (plotWidth / 12.0f) * xi;
         drawList->AddLine(ImVec2(x, plotRect.Min.y), ImVec2(x, plotRect.Max.y), gridColor2);
     }
+    // optional highlight: draw a triangle marker at a specific X on the smoothed curve
+    if (highlight_x != FLT_MAX && pointCount >= 2)
+    {
+        const float minX = ImMin(points[0].x, points[pointCount - 1].x);
+        const float maxX = ImMax(points[0].x, points[pointCount - 1].x);
+        if (highlight_x >= minX && highlight_x <= maxX)
+        {
+            const float hy = CurveValueSmooth(highlight_x, maxpoints, points);
+            ImVec2 hp = ImRemap(ImVec2(highlight_x, hy), displayRangeMin, displayRangeMax, ImVec2(0, 0), ImVec2(1, 1));
+            hp.y = 1.0f - hp.y;
+            hp = ImRemap(hp, ImVec2(0, 0), ImVec2(1, 1), bb.Min, bb.Max);
+
+            // triangle marker (upward pointing)
+            const float triHeight = 8.0f;
+            const float triWidth = 10.0f;
+            ImVec2 t0(hp.x, hp.y);                 // top
+            ImVec2 t1(hp.x - triWidth * 0.5f, hp.y + triHeight * 1.5f); // bottom-left
+            ImVec2 t2(hp.x + triWidth * 0.5f, hp.y + triHeight * 1.5f); // bottom-right
+
+            const ImU32 triFill = GetColorU32(ImGuiCol_PlotLinesHovered);
+            // const ImU32 triLine = GetColorU32(ImGuiCol_Text);
+            drawList->AddTriangleFilled(t0, t1, t2, triFill);
+            // drawList->AddTriangle(t0, t1, t2, triLine, 1.5f);
+
+            // value label near the marker
+            ImFormatString(text_buf, IM_ARRAYSIZE(text_buf), "(%.2f,%.2f)", highlight_x, hy);
+            ImVec2 ts = CalcTextSize(text_buf);
+            ImVec2 tp(hp.x - ts.x * 0.5f, t0.y - ts.y - 2.0f);
+            drawList->AddText(tp, GetColorU32(ImGuiCol_PlotLinesHovered, 0.85f), text_buf);
+        }
+    }
+
     drawList->PopClipRect();
 
     // axes with ticks and numeric labels
