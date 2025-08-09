@@ -533,7 +533,10 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
 
     int currentSelection = selection ? *selection : -1;
 
-    const bool hovered = ImGui::ItemHoverable(bb, id, g.LastItemData.InFlags);
+    // Use ButtonBehavior on the widget bounding box so interactions start only from inside it
+    bool hovered = false, held = false;
+    ImGui::KeepAliveID(id);
+    ImGui::ButtonBehavior(bb, id, &hovered, &held);
 
     int pointCount = 0;
     while (pointCount < maxpoints && points[pointCount].x >= rangeMin.x)
@@ -644,8 +647,8 @@ int Curve(const char* label, const ImVec2& size, const int maxpoints, ImVec2* po
         }
     }
 
-    // handle point dragging
-    const bool draggingPoint = IsMouseDragging(0) && currentSelection != -1;
+    // handle point dragging (start dragging only if press began inside bbox)
+    const bool draggingPoint = held && currentSelection != -1;
 
     if (draggingPoint)
     {
